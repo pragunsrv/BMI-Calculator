@@ -1,6 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH
-from tkinter import ttk
+from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH, StringVar, DoubleVar, IntVar, ttk
 import os
 
 class BMICalculator:
@@ -10,18 +9,25 @@ class BMICalculator:
         
         self.units = {'weight': 'kg', 'height': 'm'}
         self.history_file = 'bmi_history.txt'
+        self.bmi_categories = {
+            'Underweight': (0, 18.5),
+            'Normal weight': (18.5, 24.9),
+            'Overweight': (25, 29.9),
+            'Obesity': (30, float('inf'))
+        }
 
         self.create_widgets()
         self.load_history()
+        self.load_settings()
 
     def create_widgets(self):
-        self.label_weight = tk.Label(self.root, text="Weight (kg):")
+        self.label_weight = tk.Label(self.root, text="Weight:")
         self.label_weight.grid(row=0, column=0, padx=10, pady=10)
 
         self.entry_weight = tk.Entry(self.root)
         self.entry_weight.grid(row=0, column=1, padx=10, pady=10)
 
-        self.label_height = tk.Label(self.root, text="Height (m):")
+        self.label_height = tk.Label(self.root, text="Height:")
         self.label_height.grid(row=1, column=0, padx=10, pady=10)
 
         self.entry_height = tk.Entry(self.root)
@@ -30,8 +36,8 @@ class BMICalculator:
         self.unit_frame = tk.Frame(self.root)
         self.unit_frame.grid(row=2, column=0, columnspan=2, pady=10)
 
-        self.unit_weight_var = tk.StringVar(value='kg')
-        self.unit_height_var = tk.StringVar(value='m')
+        self.unit_weight_var = StringVar(value='kg')
+        self.unit_height_var = StringVar(value='m')
 
         self.label_weight_units = tk.Label(self.unit_frame, text="Weight Unit:")
         self.label_weight_units.grid(row=0, column=0, padx=5, pady=5)
@@ -54,7 +60,7 @@ class BMICalculator:
         self.history_label = tk.Label(self.root, text="Calculation History:")
         self.history_label.grid(row=5, column=0, padx=10, pady=10)
 
-        self.history_listbox = Listbox(self.root, height=10, width=50)
+        self.history_listbox = Listbox(self.root, height=10, width=60)
         self.history_listbox.grid(row=6, column=0, columnspan=2, padx=10, pady=10, rowspan=2)
 
         self.scrollbar = Scrollbar(self.root)
@@ -65,6 +71,23 @@ class BMICalculator:
 
         self.button_clear_history = tk.Button(self.root, text="Clear History", command=self.clear_history)
         self.button_clear_history.grid(row=8, column=0, columnspan=2, pady=10)
+
+        self.settings_frame = tk.Frame(self.root)
+        self.settings_frame.grid(row=9, column=0, columnspan=2, pady=10)
+
+        self.settings_label = tk.Label(self.settings_frame, text="Settings:")
+        self.settings_label.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+
+        self.label_bmi_category = tk.Label(self.settings_frame, text="Custom Categories (comma separated):")
+        self.label_bmi_category.grid(row=1, column=0, padx=5, pady=5)
+
+        self.entry_bmi_categories = tk.Entry(self.settings_frame, width=50)
+        self.entry_bmi_categories.grid(row=1, column=1, padx=5, pady=5)
+
+        self.button_save_settings = tk.Button(self.settings_frame, text="Save Settings", command=self.save_settings)
+        self.button_save_settings.grid(row=2, column=0, columnspan=2, pady=10)
+
+        self.settings = {}
 
     def calculate_bmi(self):
         weight = self.entry_weight.get()
@@ -83,8 +106,9 @@ class BMICalculator:
 
             if weight_unit == 'lb':
                 weight *= 0.453592
+
             if height_unit == 'ft':
-                height *= 0.3048  
+                height *= 0.3048
 
             if height <= 0:
                 raise ValueError("Height must be greater than zero.")
@@ -100,14 +124,10 @@ class BMICalculator:
             messagebox.showerror("Input Error", "Please enter valid numbers.")
 
     def get_bmi_category(self, bmi):
-        if bmi < 18.5:
-            return "Underweight"
-        elif 18.5 <= bmi < 24.9:
-            return "Normal weight"
-        elif 25 <= bmi < 29.9:
-            return "Overweight"
-        else:
-            return "Obesity"
+        for category, (lower, upper) in self.bmi_categories.items():
+            if lower <= bmi < upper:
+                return category
+        return "Unknown"
 
     def add_to_history(self, result_text):
         self.history_listbox.insert(tk.END, result_text)
@@ -127,6 +147,23 @@ class BMICalculator:
         self.history_listbox.delete(0, tk.END)
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
+
+    def save_settings(self):
+        categories_text = self.entry_bmi_categories.get()
+        categories = categories_text.split(',')
+
+        self.bmi_categories = {}
+        for category in categories:
+            category = category.strip()
+            if category:
+                self.bmi_categories[category] = (0, float('inf'))
+
+        self.load_settings()
+
+    def load_settings(self):
+        settings_text = ', '.join(self.bmi_categories.keys())
+        self.entry_bmi_categories.delete(0, tk.END)
+        self.entry_bmi_categories.insert(0, settings_text)
 
 if __name__ == "__main__":
     root = tk.Tk()
