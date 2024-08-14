@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH, StringVar, DoubleVar, IntVar, ttk
-from tkinter import Canvas
+from tkinter import Canvas, filedialog
 import os
+import json
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from tkinter import simpledialog
-import json
 
 class BMICalculator:
     def __init__(self, root):
@@ -22,11 +21,13 @@ class BMICalculator:
             'Obesity': (30, float('inf'))
         }
         self.history = []
-
+        self.theme = 'light'
+        
         self.load_user_preferences()
         self.create_widgets()
         self.load_history()
         self.load_settings()
+        self.apply_theme()
 
     def create_widgets(self):
         self.label_weight = tk.Label(self.root, text="Weight:")
@@ -143,6 +144,24 @@ class BMICalculator:
 
         self.dialog_button = tk.Button(self.root, text="Settings Dialog", command=self.open_settings_dialog)
         self.dialog_button.grid(row=13, column=0, columnspan=2, pady=10)
+
+        self.export_button = tk.Button(self.root, text="Export Data", command=self.export_data)
+        self.export_button.grid(row=14, column=0, columnspan=2, pady=10)
+
+        self.feedback_frame = tk.Frame(self.root)
+        self.feedback_frame.grid(row=15, column=0, columnspan=2, pady=10)
+
+        self.label_feedback = tk.Label(self.feedback_frame, text="Feedback:")
+        self.label_feedback.grid(row=0, column=0, padx=10, pady=10)
+
+        self.entry_feedback = tk.Entry(self.feedback_frame, width=50)
+        self.entry_feedback.grid(row=0, column=1, padx=10, pady=10)
+
+        self.button_submit_feedback = tk.Button(self.feedback_frame, text="Submit Feedback", command=self.submit_feedback)
+        self.button_submit_feedback.grid(row=1, column=0, columnspan=2, pady=10)
+
+        self.theme_button = tk.Button(self.root, text="Toggle Theme", command=self.toggle_theme)
+        self.theme_button.grid(row=16, column=0, columnspan=2, pady=10)
 
     def calculate_bmi(self):
         weight = self.entry_weight.get()
@@ -286,6 +305,66 @@ class BMICalculator:
 
         button_close = tk.Button(dialog, text="Close", command=dialog.destroy)
         button_close.pack(pady=10)
+
+    def export_data(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+        if not file_path:
+            return
+
+        with open(file_path, 'w') as file:
+            json.dump(self.history, file)
+
+    def submit_feedback(self):
+        feedback = self.entry_feedback.get()
+        if feedback:
+            with open('feedback.txt', 'a') as file:
+                file.write(feedback + '\n')
+            messagebox.showinfo("Feedback", "Thank you for your feedback!")
+            self.entry_feedback.delete(0, tk.END)
+        else:
+            messagebox.showerror("Feedback Error", "Please enter feedback before submitting.")
+
+    def toggle_theme(self):
+        if self.theme == 'light':
+            self.root.configure(bg='black')
+            self.label_weight.configure(bg='black', fg='white')
+            self.entry_weight.configure(bg='gray20', fg='white')
+            self.label_height.configure(bg='black', fg='white')
+            self.entry_height.configure(bg='gray20', fg='white')
+            self.button_calculate.configure(bg='gray30', fg='white')
+            self.label_result.configure(bg='black', fg='white')
+            self.settings_label.configure(bg='black', fg='white')
+            self.history_label.configure(bg='black', fg='white')
+            self.button_clear_history.configure(bg='gray30', fg='white')
+            self.button_save_settings.configure(bg='gray30', fg='white')
+            self.plot_button.configure(bg='gray30', fg='white')
+            self.button_save_profile.configure(bg='gray30', fg='white')
+            self.button_load_profile.configure(bg='gray30', fg='white')
+            self.dialog_button.configure(bg='gray30', fg='white')
+            self.export_button.configure(bg='gray30', fg='white')
+            self.button_submit_feedback.configure(bg='gray30', fg='white')
+            self.theme_button.configure(bg='gray30', fg='white')
+            self.theme = 'dark'
+        else:
+            self.root.configure(bg='white')
+            self.label_weight.configure(bg='white', fg='black')
+            self.entry_weight.configure(bg='white', fg='black')
+            self.label_height.configure(bg='white', fg='black')
+            self.entry_height.configure(bg='white', fg='black')
+            self.button_calculate.configure(bg='lightgray', fg='black')
+            self.label_result.configure(bg='white', fg='black')
+            self.settings_label.configure(bg='white', fg='black')
+            self.history_label.configure(bg='white', fg='black')
+            self.button_clear_history.configure(bg='lightgray', fg='black')
+            self.button_save_settings.configure(bg='lightgray', fg='black')
+            self.plot_button.configure(bg='lightgray', fg='black')
+            self.button_save_profile.configure(bg='lightgray', fg='black')
+            self.button_load_profile.configure(bg='lightgray', fg='black')
+            self.dialog_button.configure(bg='lightgray', fg='black')
+            self.export_button.configure(bg='lightgray', fg='black')
+            self.button_submit_feedback.configure(bg='lightgray', fg='black')
+            self.theme_button.configure(bg='lightgray', fg='black')
+            self.theme = 'light'
 
 if __name__ == "__main__":
     root = tk.Tk()
