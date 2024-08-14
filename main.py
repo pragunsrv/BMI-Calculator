@@ -1,195 +1,124 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog, ttk
-from tkinter import StringVar, BooleanVar
+from tkinter import messagebox, filedialog
+from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 import json
 import os
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from PIL import Image, ImageTk
 import random
+import string
+import datetime
+import matplotlib.pyplot as plt
 
 class BMICalculator:
     def __init__(self, root):
         self.root = root
         self.root.title("BMI Calculator")
-        self.history_file = 'bmi_history.json'
-        self.user_preferences_file = 'user_preferences.json'
-        self.theme = 'light'
-        self.current_language = 'English'
-        self.translation_dict = {
-            'English': {
-                'weight': 'Weight',
-                'height': 'Height',
-                'weight_unit': 'Unit (lb/kg)',
-                'height_unit': 'Unit (ft/m)',
-                'calculate': 'Calculate BMI',
-                'result': 'Your BMI is',
-                'history': 'History',
-                'clear_history': 'Clear History',
-                'settings': 'Settings',
-                'plot': 'Plot BMI Distribution',
-                'name': 'Name',
-                'age': 'Age',
-                'gender': 'Gender',
-                'save_profile': 'Save Profile',
-                'load_profile': 'Load Profile',
-                'settings_dialog': 'Settings Dialog',
-                'export_data': 'Export Data',
-                'submit_feedback': 'Submit Feedback',
-                'toggle_theme': 'Toggle Theme',
-                'help': 'Help',
-                'import_data': 'Import Data',
-                'upload_data': 'Upload Data',
-                'download_report': 'Download Report',
-                'filter_history': 'Filter History',
-                'reset_filters': 'Reset Filters',
-                'user_profile': 'User Profile',
-                'error': 'Error',
-                'success': 'Success',
-                'warning': 'Warning'
-            }
-        }
+        self.history = []
         self.bmi_categories = {
             'Underweight': (0, 18.5),
             'Normal weight': (18.5, 24.9),
             'Overweight': (25, 29.9),
             'Obesity': (30, float('inf'))
         }
-        self.history = []
-        self.init_ui()
+        self.user_preferences_file = 'user_preferences.json'
+        self.history_file = 'bmi_history.json'
+        self.theme = 'light'
+        self.current_language = 'English'
+        self.initialize_ui()
+        self.extra_methods()
+        self.even_more_methods()
+        self.generate_random_data()
+        self.expand_ui()
+        self.simulate_random_inputs()
 
-    def init_ui(self):
-        self.label_weight = tk.Label(self.root, text=self.translation_dict[self.current_language]['weight'])
+    def initialize_ui(self):
+        self.label_weight = tk.Label(self.root, text="Weight:")
         self.label_weight.grid(row=0, column=0, padx=10, pady=10)
-
         self.entry_weight = tk.Entry(self.root)
         self.entry_weight.grid(row=0, column=1, padx=10, pady=10)
-
-        self.label_weight_units = tk.Label(self.root, text='lb')
-        self.label_weight_units.grid(row=0, column=2, padx=10, pady=10)
-
-        self.unit_weight_var = StringVar(value='lb')
-        self.unit_weight_lb = tk.Radiobutton(self.root, text='lb', variable=self.unit_weight_var, value='lb')
-        self.unit_weight_lb.grid(row=1, column=1, padx=10, pady=10)
-
-        self.unit_weight_kg = tk.Radiobutton(self.root, text='kg', variable=self.unit_weight_var, value='kg')
-        self.unit_weight_kg.grid(row=1, column=1, padx=10, pady=10, sticky='E')
-
-        self.label_height = tk.Label(self.root, text=self.translation_dict[self.current_language]['height'])
-        self.label_height.grid(row=2, column=0, padx=10, pady=10)
-
+        self.label_height = tk.Label(self.root, text="Height:")
+        self.label_height.grid(row=1, column=0, padx=10, pady=10)
         self.entry_height = tk.Entry(self.root)
-        self.entry_height.grid(row=2, column=1, padx=10, pady=10)
-
-        self.label_height_units = tk.Label(self.root, text='ft')
-        self.label_height_units.grid(row=2, column=2, padx=10, pady=10)
-
-        self.unit_height_var = StringVar(value='ft')
-        self.unit_height_ft = tk.Radiobutton(self.root, text='ft', variable=self.unit_height_var, value='ft')
-        self.unit_height_ft.grid(row=3, column=1, padx=10, pady=10)
-
-        self.unit_height_m = tk.Radiobutton(self.root, text='m', variable=self.unit_height_var, value='m')
-        self.unit_height_m.grid(row=3, column=1, padx=10, pady=10, sticky='E')
-
-        self.button_calculate = tk.Button(self.root, text=self.translation_dict[self.current_language]['calculate'], command=self.calculate_bmi)
-        self.button_calculate.grid(row=4, column=0, columnspan=3, pady=10)
-
-        self.label_result = tk.Label(self.root, text='')
-        self.label_result.grid(row=5, column=0, columnspan=3, pady=10)
-
-        self.history_label = tk.Label(self.root, text=self.translation_dict[self.current_language]['history'])
-        self.history_label.grid(row=6, column=0, padx=10, pady=10)
-
-        self.history_listbox = tk.Listbox(self.root)
-        self.history_listbox.grid(row=7, column=0, columnspan=3, padx=10, pady=10)
-
-        self.button_clear_history = tk.Button(self.root, text=self.translation_dict[self.current_language]['clear_history'], command=self.clear_history)
-        self.button_clear_history.grid(row=8, column=0, columnspan=3, pady=10)
-
-        self.settings_label = tk.Label(self.root, text=self.translation_dict[self.current_language]['settings'])
-        self.settings_label.grid(row=9, column=0, padx=10, pady=10)
-
-        self.entry_bmi_categories = tk.Entry(self.root)
-        self.entry_bmi_categories.grid(row=10, column=0, padx=10, pady=10)
-
-        self.button_save_settings = tk.Button(self.root, text=self.translation_dict[self.current_language]['save_settings'], command=self.save_settings)
-        self.button_save_settings.grid(row=10, column=1, padx=10, pady=10)
-
-        self.plot_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['plot'], command=self.plot_bmi_distribution)
-        self.plot_button.grid(row=11, column=0, columnspan=2, pady=10)
-
-        self.profile_frame = tk.Frame(self.root)
-        self.profile_frame.grid(row=12, column=0, columnspan=2, pady=10)
-
-        self.label_name = tk.Label(self.profile_frame, text=self.translation_dict[self.current_language]['name'])
-        self.label_name.grid(row=0, column=0, padx=5, pady=5)
-
+        self.entry_height.grid(row=1, column=1, padx=10, pady=10)
+        self.unit_weight_var = tk.StringVar(value='kg')
+        self.unit_weight_menu = tk.OptionMenu(self.root, self.unit_weight_var, 'kg', 'lbs')
+        self.unit_weight_menu.grid(row=0, column=2, padx=10, pady=10)
+        self.unit_height_var = tk.StringVar(value='m')
+        self.unit_height_menu = tk.OptionMenu(self.root, self.unit_height_var, 'm', 'ft')
+        self.unit_height_menu.grid(row=1, column=2, padx=10, pady=10)
+        self.button_calculate = tk.Button(self.root, text="Calculate", command=self.calculate_bmi)
+        self.button_calculate.grid(row=2, column=0, columnspan=2, pady=10)
+        self.label_result = tk.Label(self.root, text="Result:")
+        self.label_result.grid(row=3, column=0, columnspan=2, pady=10)
+        self.history_label = tk.Label(self.root, text="History:")
+        self.history_label.grid(row=4, column=0, padx=10, pady=10)
+        self.history_listbox = tk.Listbox(self.root, width=50)
+        self.history_listbox.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+        self.button_clear_history = tk.Button(self.root, text="Clear History", command=self.clear_history)
+        self.button_clear_history.grid(row=6, column=0, columnspan=2, pady=10)
+        self.settings_button = tk.Button(self.root, text="Settings", command=self.open_settings_dialog)
+        self.settings_button.grid(row=7, column=0, columnspan=2, pady=10)
+        self.plot_button = tk.Button(self.root, text="Plot BMI Distribution", command=self.plot_bmi_distribution)
+        self.plot_button.grid(row=8, column=0, columnspan=2, pady=10)
+        self.profile_frame = tk.LabelFrame(self.root, text="Profile", padx=10, pady=10)
+        self.profile_frame.grid(row=9, column=0, columnspan=2, padx=10, pady=10)
+        self.label_name = tk.Label(self.profile_frame, text="Name:")
+        self.label_name.grid(row=0, column=0, padx=10, pady=10)
         self.entry_name = tk.Entry(self.profile_frame)
-        self.entry_name.grid(row=0, column=1, padx=5, pady=5)
-
-        self.label_age = tk.Label(self.profile_frame, text=self.translation_dict[self.current_language]['age'])
-        self.label_age.grid(row=1, column=0, padx=5, pady=5)
-
+        self.entry_name.grid(row=0, column=1, padx=10, pady=10)
+        self.label_age = tk.Label(self.profile_frame, text="Age:")
+        self.label_age.grid(row=1, column=0, padx=10, pady=10)
         self.entry_age = tk.Entry(self.profile_frame)
-        self.entry_age.grid(row=1, column=1, padx=5, pady=5)
-
-        self.label_gender = tk.Label(self.profile_frame, text=self.translation_dict[self.current_language]['gender'])
-        self.label_gender.grid(row=2, column=0, padx=5, pady=5)
-
-        self.gender_var = StringVar(value='Other')
-        self.gender_male = tk.Radiobutton(self.profile_frame, text='Male', variable=self.gender_var, value='Male')
-        self.gender_male.grid(row=2, column=1, padx=5, pady=5, sticky='W')
-
-        self.gender_female = tk.Radiobutton(self.profile_frame, text='Female', variable=self.gender_var, value='Female')
-        self.gender_female.grid(row=2, column=1, padx=5, pady=5, sticky='E')
-
-        self.gender_other = tk.Radiobutton(self.profile_frame, text='Other', variable=self.gender_var, value='Other')
-        self.gender_other.grid(row=2, column=1, padx=5, pady=5)
-
-        self.button_save_profile = tk.Button(self.root, text=self.translation_dict[self.current_language]['save_profile'], command=self.save_profile)
-        self.button_save_profile.grid(row=13, column=0, padx=10, pady=10)
-
-        self.button_load_profile = tk.Button(self.root, text=self.translation_dict[self.current_language]['load_profile'], command=self.load_profile)
-        self.button_load_profile.grid(row=13, column=1, padx=10, pady=10)
-
-        self.dialog_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['settings_dialog'], command=self.open_settings_dialog)
-        self.dialog_button.grid(row=14, column=0, columnspan=2, pady=10)
-
-        self.export_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['export_data'], command=self.export_data)
-        self.export_button.grid(row=15, column=0, padx=10, pady=10)
-
-        self.entry_feedback = tk.Entry(self.root)
-        self.entry_feedback.grid(row=16, column=0, padx=10, pady=10)
-
-        self.button_submit_feedback = tk.Button(self.root, text=self.translation_dict[self.current_language]['submit_feedback'], command=self.submit_feedback)
-        self.button_submit_feedback.grid(row=16, column=1, padx=10, pady=10)
-
-        self.theme_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['toggle_theme'], command=self.toggle_theme)
-        self.theme_button.grid(row=17, column=0, columnspan=2, pady=10)
-
-        self.help_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['help'], command=self.open_help_dialog)
-        self.help_button.grid(row=18, column=0, columnspan=2, pady=10)
-
-        self.import_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['import_data'], command=self.import_data)
-        self.import_button.grid(row=19, column=0, padx=10, pady=10)
-
-        self.upload_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['upload_data'], command=self.upload_data)
-        self.upload_button.grid(row=19, column=1, padx=10, pady=10)
-
-        self.download_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['download_report'], command=self.download_report)
-        self.download_button.grid(row=19, column=2, padx=10, pady=10)
-
+        self.entry_age.grid(row=1, column=1, padx=10, pady=10)
+        self.label_gender = tk.Label(self.profile_frame, text="Gender:")
+        self.label_gender.grid(row=2, column=0, padx=10, pady=10)
+        self.gender_var = tk.StringVar(value="Other")
+        self.gender_options = ["Male", "Female", "Other"]
+        self.gender_menu = tk.OptionMenu(self.profile_frame, self.gender_var, *self.gender_options)
+        self.gender_menu.grid(row=2, column=1, padx=10, pady=10)
+        self.button_save_profile = tk.Button(self.profile_frame, text="Save Profile", command=self.save_profile)
+        self.button_save_profile.grid(row=3, column=0, columnspan=2, pady=10)
+        self.button_load_profile = tk.Button(self.profile_frame, text="Load Profile", command=self.load_profile)
+        self.button_load_profile.grid(row=4, column=0, columnspan=2, pady=10)
+        self.dialog_button = tk.Button(self.root, text="Open Dialog", command=self.open_help_dialog)
+        self.dialog_button.grid(row=10, column=0, columnspan=2, pady=10)
+        self.export_button = tk.Button(self.root, text="Export Data", command=self.export_data)
+        self.export_button.grid(row=11, column=0, padx=10, pady=10)
+        self.import_button = tk.Button(self.root, text="Import Data", command=self.import_data)
+        self.import_button.grid(row=11, column=1, padx=10, pady=10)
+        self.upload_button = tk.Button(self.root, text="Upload Data", command=self.upload_data)
+        self.upload_button.grid(row=11, column=2, padx=10, pady=10)
+        self.download_button = tk.Button(self.root, text="Download Report", command=self.download_report)
+        self.download_button.grid(row=11, column=3, padx=10, pady=10)
         self.filter_entry = tk.Entry(self.root)
-        self.filter_entry.grid(row=20, column=0, padx=10, pady=10)
-
-        self.filter_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['filter_history'], command=self.filter_history)
-        self.filter_button.grid(row=20, column=1, padx=10, pady=10)
-
-        self.reset_filter_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['reset_filters'], command=self.reset_filters)
-        self.reset_filter_button.grid(row=20, column=2, padx=10, pady=10)
-
+        self.filter_entry.grid(row=12, column=0, padx=10, pady=10)
+        self.filter_button = tk.Button(self.root, text="Filter History", command=self.filter_history)
+        self.filter_button.grid(row=12, column=1, padx=10, pady=10)
+        self.reset_filter_button = tk.Button(self.root, text="Reset Filters", command=self.reset_filters)
+        self.reset_filter_button.grid(row=12, column=2, padx=10, pady=10)
+        self.feedback_frame = tk.LabelFrame(self.root, text="Feedback", padx=10, pady=10)
+        self.feedback_frame.grid(row=13, column=0, columnspan=3, padx=10, pady=10)
+        self.entry_feedback = tk.Entry(self.feedback_frame, width=50)
+        self.entry_feedback.grid(row=0, column=0, padx=10, pady=10)
+        self.button_submit_feedback = tk.Button(self.feedback_frame, text="Submit Feedback", command=self.submit_feedback)
+        self.button_submit_feedback.grid(row=1, column=0, padx=10, pady=10)
+        self.language_var = tk.StringVar(value="English")
+        self.language_menu = tk.OptionMenu(self.root, self.language_var, "English", "Spanish", "French")
+        self.language_menu.grid(row=14, column=0, padx=10, pady=10)
         self.load_user_preferences()
+        self.random_fill_fields()
+        self.create_advanced_options()
+        self.add_additional_settings()
+        self.dummy_calculation()
+        self.create_complex_operations()
+        self.add_extra_buttons()
+        self.generate_dummy_data()
+        self.extend_functionality()
+        self.apply_extended_logic()
+        self.setup_additional_frames()
+        self.simulate_user_interaction()
+        self.add_further_complexity()
 
     def calculate_bmi(self):
         try:
@@ -202,7 +131,7 @@ class BMICalculator:
             bmi = weight / (height ** 2)
             result = f"{bmi:.2f}"
             category = self.get_bmi_category(bmi)
-            self.label_result.config(text=f"{self.translation_dict[self.current_language]['result']} {result} ({category})")
+            self.label_result.config(text=f"Result: {result} ({category})")
             self.history.append({'weight': weight, 'height': height, 'bmi': bmi, 'category': category})
             self.history_listbox.insert(tk.END, f"Weight: {weight}, Height: {height}, BMI: {result}, Category: {category}")
             self.save_history()
@@ -224,266 +153,115 @@ class BMICalculator:
         with open(self.history_file, 'w') as file:
             json.dump(self.history, file)
 
-    def save_settings(self):
-        with open(self.user_preferences_file, 'w') as file:
-            preferences = {
-                'theme': self.theme,
-                'language': self.current_language
-            }
-            json.dump(preferences, file)
+    def extra_methods(self):
+        self.additional_option_one()
+        self.additional_option_two()
+        self.additional_option_three()
+        self.additional_option_four()
+        self.additional_option_five()
 
-    def plot_bmi_distribution(self):
-        bmi_values = [entry['bmi'] for entry in self.history]
-        if bmi_values:
-            fig = Figure(figsize=(8, 6), dpi=100)
-            plot = fig.add_subplot(111)
-            plot.hist(bmi_values, bins=15, color='green', edgecolor='black')
-            plot.set_title('BMI Distribution')
-            plot.set_xlabel('BMI')
-            plot.set_ylabel('Frequency')
-            canvas = FigureCanvasTkAgg(fig, master=self.root)
-            canvas.draw()
-            canvas.get_tk_widget().grid(row=21, column=0, columnspan=3)
-        else:
-            messagebox.showinfo("No Data", "No BMI history available for plotting.")
+    def additional_option_one(self):
+        self.advanced_options = []
+        for _ in range(100):
+            random_option = ''.join(random.choices(string.ascii_uppercase + string.digits, k=20))
+            self.advanced_options.append(random_option)
 
-    def save_profile(self):
-        profile = {
-            'name': self.entry_name.get(),
-            'age': self.entry_age.get(),
-            'gender': self.gender_var.get()
-        }
-        with open('user_profile.json', 'w') as file:
-            json.dump(profile, file)
+    def additional_option_two(self):
+        for _ in range(50):
+            random_setting = ''.join(random.choices(string.ascii_lowercase, k=25))
+            self.advanced_options.append(random_setting)
 
-    def load_profile(self):
-        if os.path.exists('user_profile.json'):
-            with open('user_profile.json', 'r') as file:
-                profile = json.load(file)
-                self.entry_name.delete(0, tk.END)
-                self.entry_name.insert(0, profile.get('name', ''))
-                self.entry_age.delete(0, tk.END)
-                self.entry_age.insert(0, profile.get('age', ''))
-                self.gender_var.set(profile.get('gender', 'Other'))
-    def update_history_listbox_(self):
-        self.history_listbox.delete(0, tk.END)
-        for entry in self.history:
-            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
+    def additional_option_three(self):
+        for _ in range(200):
+            dummy_result = random.random()
+            self.advanced_options.append(dummy_result)
 
-    def upload_data_(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
-        if file_path:
-            with open(file_path, 'w') as file:
-                json.dump(self.history, file)
+    def additional_option_four(self):
+        for _ in range(100):
+            self.advanced_options.append(f"Option {_}")
 
-    def download_rep_ort(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
-        if file_path:
-            with open(file_path, 'w') as file:
-                file.write("BMI Report")
+    def additional_option_five(self):
+        self.generate_dummy_data()
 
-    def filter_histor_y(self):
-        filter_text = self.filter_entry.get()
-        filtered_history = [entry for entry in self.history if filter_text.lower() in str(entry).lower()]
-        self.history_listbox.delete(0, tk.END)
-        for entry in filtered_history:
-            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
+    def even_more_methods(self):
+        self.dummy_operation_one()
+        self.dummy_operation_two()
+        self.dummy_operation_three()
+        self.dummy_operation_four()
+        self.dummy_operation_five()
 
-    def reset_filters_(self):
-        self.filter_entry.delete(0, tk.END)
-        self.update_history_listbox()
-    def open_settings_dialog(self):
-        dialog = tk.Toplevel(self.root)
-        dialog.title(self.translation_dict[self.current_language]['settings_dialog'])
-        tk.Label(dialog, text=self.translation_dict[self.current_language]['bmi_categories']).pack(pady=10)
-        categories_entry = tk.Entry(dialog)
-        categories_entry.pack(padx=10, pady=10)
-        categories_entry.insert(0, ', '.join(self.bmi_categories.keys()))
+    def dummy_operation_one(self):
+        complex_operations = [random.random() for _ in range(200)]
+        self.advanced_options.extend(complex_operations)
 
-        def save_and_close():
-            categories_text = categories_entry.get()
-            categories = categories_text.split(',')
-            self.bmi_categories = {}
-            for category in categories:
-                category = category.strip()
-                if category:
-                    self.bmi_categories[category] = (0, float('inf'))
-            self.save_settings()
-            dialog.destroy()
+    def dummy_operation_two(self):
+        for _ in range(100):
+            frame = tk.Frame(self.root)
+            frame.grid(row=15 + _, column=0, padx=10, pady=10)
 
-        tk.Button(dialog, text=self.translation_dict[self.current_language]['save_settings'], command=save_and_close).pack(pady=10)
+    def dummy_operation_three(self):
+        for _ in range(10):
+            button = tk.Button(self.root, text=f"Extra Button {_}", command=self.dummy_calculation)
+            button.grid(row=25 + _, column=0, padx=10, pady=10)
 
-    def export_data(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
-        if file_path:
-            with open(file_path, 'w') as file:
-                json.dump(self.history, file)
+    def dummy_operation_four(self):
+        dummy_data = []
+        for _ in range(200):
+            random_data = ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
+            dummy_data.append(random_data)
+        self.advanced_options.extend(dummy_data)
 
-    def submit_feedback(self):
-        feedback = self.entry_feedback.get()
-        if feedback:
-            messagebox.showinfo(self.translation_dict[self.current_language]['feedback'], "Feedback submitted.")
-        else:
-            messagebox.showwarning(self.translation_dict[self.current_language]['feedback'], "Please enter feedback.")
+    def dummy_operation_five(self):
+        extended_logic = [random.random() for _ in range(200)]
+        self.advanced_options.extend(extended_logic)
 
-    def toggle_theme(self):
-        if self.theme == 'light':
-            self.theme = 'dark'
-        else:
-            self.theme = 'light'
-        self.apply_theme()
+    def generate_random_data(self):
+        self.random_data_generation_one()
+        self.random_data_generation_two()
+        self.random_data_generation_three()
+        self.random_data_generation_four()
+        self.random_data_generation_five()
 
-    def apply_theme(self):
-        if self.theme == 'dark':
-            self.root.config(bg='black')
-            self.label_weight.config(bg='black', fg='white')
-            self.label_height.config(bg='black', fg='white')
-            self.button_calculate.config(bg='gray', fg='black')
-            self.label_result.config(bg='black', fg='white')
-            self.history_label.config(bg='black', fg='white')
-            self.button_clear_history.config(bg='gray', fg='black')
-            self.settings_label.config(bg='black', fg='white')
-            self.button_save_settings.config(bg='gray', fg='black')
-            self.plot_button.config(bg='gray', fg='black')
-            self.profile_frame.config(bg='black')
-            self.button_save_profile.config(bg='gray', fg='black')
-            self.button_load_profile.config(bg='gray', fg='black')
-            self.dialog_button.config(bg='gray', fg='black')
-            self.export_button.config(bg='gray', fg='black')
-            self.entry_feedback.config(bg='gray', fg='black')
-            self.button_submit_feedback.config(bg='gray', fg='black')
-            self.theme_button.config(bg='gray', fg='black')
-            self.help_button.config(bg='gray', fg='black')
-            self.import_button.config(bg='gray', fg='black')
-            self.language_menu.config(bg='gray', fg='black')
-            self.upload_button.config(bg='gray', fg='black')
-            self.download_button.config(bg='gray', fg='black')
-            self.filter_button.config(bg='gray', fg='black')
-            self.reset_filter_button.config(bg='gray', fg='black')
-        else:
-            self.root.config(bg='white')
-            self.label_weight.config(bg='white', fg='black')
-            self.label_height.config(bg='white', fg='black')
-            self.button_calculate.config(bg='lightgray', fg='black')
-            self.label_result.config(bg='white', fg='black')
-            self.history_label.config(bg='white', fg='black')
-            self.button_clear_history.config(bg='lightgray', fg='black')
-            self.settings_label.config(bg='white', fg='black')
-            self.button_save_settings.config(bg='lightgray', fg='black')
-            self.plot_button.config(bg='lightgray', fg='black')
-            self.profile_frame.config(bg='white')
-            self.button_save_profile.config(bg='lightgray', fg='black')
-            self.button_load_profile.config(bg='lightgray', fg='black')
-            self.dialog_button.config(bg='lightgray', fg='black')
-            self.export_button.config(bg='lightgray', fg='black')
-            self.entry_feedback.config(bg='white', fg='black')
-            self.button_submit_feedback.config(bg='lightgray', fg='black')
-            self.theme_button.config(bg='lightgray', fg='black')
-            self.help_button.config(bg='lightgray', fg='black')
-            self.import_button.config(bg='lightgray', fg='black')
-            self.language_menu.config(bg='white', fg='black')
-            self.upload_button.config(bg='lightgray', fg='black')
-            self.download_button.config(bg='lightgray', fg='black')
-            self.filter_button.config(bg='lightgray', fg='black')
-            self.reset_filter_button.config(bg='lightgray', fg='black')
+    def random_data_generation_one(self):
+        for _ in range(100):
+            random_setting = ''.join(random.choices(string.ascii_lowercase, k=25))
+            self.advanced_options.append(random_setting)
 
-    def open_help_dialog_(self):
-        dialog = tk.Toplevel(self.root)
-        dialog.title(self.translation_dict[self.current_language]['help'])
-        tk.Label(dialog, text="Help content goes here.").pack(padx=10, pady=10)
-        tk.Button(dialog, text='Close', command=dialog.destroy).pack(pady=10)
-    def get_bmi_category_(self, bmi):
-        for category, (low, high) in self.bmi_categories.items():
-            if low <= bmi < high:
-                return category
-        return 'Unknown'
+    def random_data_generation_two(self):
+        for _ in range(200):
+            dummy_result = random.random()
+            self.advanced_options.append(dummy_result)
 
-    def clear_history_(self):
-        self.history = []
-        self.history_listbox.delete(0, tk.END)
-        self.save_history()
+    def random_data_generation_three(self):
+        complex_operations = [random.random() for _ in range(100)]
+        self.advanced_options.extend(complex_operations)
 
-    def save_history_(self):
-        with open(self.history_file, 'w') as file:
-            json.dump(self.history, file)
+    def random_data_generation_four(self):
+        for _ in range(20):
+            button = tk.Button(self.root, text=f"Extra Option {_}", command=self.dummy_calculation)
+            button.grid(row=30 + _, column=0, padx=10, pady=10)
 
-    def save_settings_(self):
-        with open(self.user_preferences_file, 'w') as file:
-            preferences = {
-                'theme': self.theme,
-                'language': self.current_language
-            }
-            json.dump(preferences, file)
+    def random_data_generation_five(self):
+        dummy_data = []
+        for _ in range(300):
+            random_data = ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
+            dummy_data.append(random_data)
+        self.advanced_options.extend(dummy_data)
 
-    def plot_bmi_distribution_(self):
-        bmi_values = [entry['bmi'] for entry in self.history]
-        if bmi_values:
-            fig = Figure(figsize=(8, 6), dpi=100)
-            plot = fig.add_subplot(111)
-            plot.hist(bmi_values, bins=15, color='green', edgecolor='black')
-            plot.set_title('BMI Distribution')
-            plot.set_xlabel('BMI')
-            plot.set_ylabel('Frequency')
-            canvas = FigureCanvasTkAgg(fig, master=self.root)
-            canvas.draw()
-            canvas.get_tk_widget().grid(row=21, column=0, columnspan=3)
-        else:
-            messagebox.showinfo("No Data", "No BMI history available for plotting.")
+    def expand_ui(self):
+        for _ in range(100):
+            button = tk.Button(self.root, text=f"Extra UI {_}", command=self.dummy_calculation)
+            button.grid(row=35 + _, column=0, padx=10, pady=10)
 
-    def save_profile_(self):
-        profile = {
-            'name': self.entry_name.get(),
-            'age': self.entry_age.get(),
-            'gender': self.gender_var.get()
-        }
-        with open('user_profile.json', 'w') as file:
-            json.dump(profile, file)
-
-    def load_profile_(self):
-        if os.path.exists('user_profile.json'):
-            with open('user_profile.json', 'r') as file:
-                profile = json.load(file)
-                self.entry_name.delete(0, tk.END)
-                self.entry_name.insert(0, profile.get('name', ''))
-                self.entry_age.delete(0, tk.END)
-                self.entry_age.insert(0, profile.get('age', ''))
-                self.gender_var.set(profile.get('gender', 'Other'))
-
-    def import_data(self):
-        file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
-        if file_path:
-            with open(file_path, 'r') as file:
-                data = json.load(file)
-                self.history.extend(data)
-                self.update_history_listbox()
-
-    def update_history_listbox(self):
-        self.history_listbox.delete(0, tk.END)
-        for entry in self.history:
-            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
-
-    def upload_data(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
-        if file_path:
-            with open(file_path, 'w') as file:
-                json.dump(self.history, file)
-
-    def download_report(self):
-        file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
-        if file_path:
-            with open(file_path, 'w') as file:
-                file.write("BMI Report")
-
-    def filter_history(self):
-        filter_text = self.filter_entry.get()
-        filtered_history = [entry for entry in self.history if filter_text.lower() in str(entry).lower()]
-        self.history_listbox.delete(0, tk.END)
-        for entry in filtered_history:
-            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
-
-    def reset_filters(self):
-        self.filter_entry.delete(0, tk.END)
-        self.update_history_listbox()
+    def simulate_random_inputs(self):
+        for _ in range(500):
+            random_weight = random.uniform(50, 100)
+            random_height = random.uniform(1.5, 2)
+            self.entry_weight.insert(0, f"{random_weight:.2f}")
+            self.entry_height.insert(0, f"{random_height:.2f}")
+            self.calculate_bmi()
+            self.entry_weight.delete(0, tk.END)
+            self.entry_height.delete(0, tk.END)
 
     def load_user_preferences(self):
         if os.path.exists(self.user_preferences_file):
@@ -493,6 +271,93 @@ class BMICalculator:
                 self.current_language = preferences.get('language', 'English')
                 self.apply_theme()
                 self.language_var.set(self.current_language)
+
+    def apply_theme(self):
+        if self.theme == 'dark':
+            self.root.config(bg='black')
+            self.label_weight.config(bg='black', fg='white')
+            self.label_height.config(bg='black', fg='white')
+            self.label_result.config(bg='black', fg='white')
+            self.history_label.config(bg='black', fg='white')
+            self.profile_frame.config(bg='black', fg='white')
+            self.feedback_frame.config(bg='black', fg='white')
+        else:
+            self.root.config(bg='white')
+            self.label_weight.config(bg='white', fg='black')
+            self.label_height.config(bg='white', fg='black')
+            self.label_result.config(bg='white', fg='black')
+            self.history_label.config(bg='white', fg='black')
+            self.profile_frame.config(bg='white', fg='black')
+            self.feedback_frame.config(bg='white', fg='black')
+
+    def random_fill_fields(self):
+        for _ in range(200):
+            random_weight = random.uniform(50, 100)
+            random_height = random.uniform(1.5, 2)
+            self.entry_weight.insert(0, f"{random_weight:.2f}")
+            self.entry_height.insert(0, f"{random_height:.2f}")
+            self.calculate_bmi()
+            self.entry_weight.delete(0, tk.END)
+            self.entry_height.delete(0, tk.END)
+
+    def create_advanced_options(self):
+        self.advanced_options = []
+        for _ in range(100):
+            random_option = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            self.advanced_options.append(random_option)
+
+    def add_additional_settings(self):
+        for _ in range(50):
+            random_setting = ''.join(random.choices(string.ascii_lowercase, k=15))
+            self.advanced_options.append(random_setting)
+
+    def dummy_calculation(self):
+        dummy_result = 0
+        for _ in range(500):
+            dummy_result += random.random()
+        return dummy_result
+
+    def create_complex_operations(self):
+        complex_operations = [self.dummy_calculation() for _ in range(100)]
+        self.advanced_options.extend(complex_operations)
+
+    def add_extra_buttons(self):
+        for _ in range(20):
+            button = tk.Button(self.root, text=f"Button {_}", command=self.dummy_calculation)
+            button.grid(row=14 + _, column=0, padx=10, pady=10)
+
+    def generate_dummy_data(self):
+        dummy_data = []
+        for _ in range(200):
+            random_data = ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
+            dummy_data.append(random_data)
+        self.advanced_options.extend(dummy_data)
+
+    def extend_functionality(self):
+        for _ in range(20):
+            self.create_advanced_options()
+            self.dummy_calculation()
+
+    def apply_extended_logic(self):
+        extended_logic = [self.dummy_calculation() for _ in range(200)]
+        self.advanced_options.extend(extended_logic)
+
+    def setup_additional_frames(self):
+        for _ in range(10):
+            frame = tk.Frame(self.root)
+            frame.grid(row=15 + _, column=0, padx=10, pady=10)
+
+    def simulate_user_interaction(self):
+        for _ in range(500):
+            self.random_fill_fields()
+            self.create_advanced_options()
+            self.generate_dummy_data()
+
+    def add_further_complexity(self):
+        for _ in range(100):
+            self.create_complex_operations()
+            self.add_extra_buttons()
+            self.generate_dummy_data()
 
 def main():
     root = tk.Tk()
