@@ -4,6 +4,8 @@ from tkinter import Canvas
 import os
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import simpledialog
+import json
 
 class BMICalculator:
     def __init__(self, root):
@@ -11,7 +13,8 @@ class BMICalculator:
         self.root.title("BMI Calculator")
         
         self.units = {'weight': 'kg', 'height': 'm'}
-        self.history_file = 'bmi_history.txt'
+        self.history_file = 'bmi_history.json'
+        self.user_preferences_file = 'user_preferences.json'
         self.bmi_categories = {
             'Underweight': (0, 18.5),
             'Normal weight': (18.5, 24.9),
@@ -20,6 +23,7 @@ class BMICalculator:
         }
         self.history = []
 
+        self.load_user_preferences()
         self.create_widgets()
         self.load_history()
         self.load_settings()
@@ -100,6 +104,46 @@ class BMICalculator:
         self.plot_button = tk.Button(self.root, text="Plot BMI Distribution", command=self.plot_bmi_distribution)
         self.plot_button.grid(row=11, column=0, columnspan=2, pady=10)
 
+        self.profile_frame = tk.Frame(self.root)
+        self.profile_frame.grid(row=12, column=0, columnspan=2, pady=10)
+
+        self.label_profile = tk.Label(self.profile_frame, text="User Profile:")
+        self.label_profile.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+
+        self.label_name = tk.Label(self.profile_frame, text="Name:")
+        self.label_name.grid(row=1, column=0, padx=5, pady=5)
+
+        self.entry_name = tk.Entry(self.profile_frame)
+        self.entry_name.grid(row=1, column=1, padx=5, pady=5)
+
+        self.label_age = tk.Label(self.profile_frame, text="Age:")
+        self.label_age.grid(row=2, column=0, padx=5, pady=5)
+
+        self.entry_age = tk.Entry(self.profile_frame)
+        self.entry_age.grid(row=2, column=1, padx=5, pady=5)
+
+        self.label_gender = tk.Label(self.profile_frame, text="Gender:")
+        self.label_gender.grid(row=3, column=0, padx=5, pady=5)
+
+        self.gender_var = StringVar(value='Other')
+        self.male_rb = tk.Radiobutton(self.profile_frame, text="Male", variable=self.gender_var, value='Male')
+        self.male_rb.grid(row=3, column=1, padx=5, pady=5, sticky=LEFT)
+
+        self.female_rb = tk.Radiobutton(self.profile_frame, text="Female", variable=self.gender_var, value='Female')
+        self.female_rb.grid(row=3, column=1, padx=65, pady=5, sticky=LEFT)
+
+        self.other_rb = tk.Radiobutton(self.profile_frame, text="Other", variable=self.gender_var, value='Other')
+        self.other_rb.grid(row=3, column=1, padx=120, pady=5, sticky=LEFT)
+
+        self.button_save_profile = tk.Button(self.profile_frame, text="Save Profile", command=self.save_profile)
+        self.button_save_profile.grid(row=4, column=0, columnspan=2, pady=10)
+
+        self.button_load_profile = tk.Button(self.profile_frame, text="Load Profile", command=self.load_profile)
+        self.button_load_profile.grid(row=5, column=0, columnspan=2, pady=10)
+
+        self.dialog_button = tk.Button(self.root, text="Settings Dialog", command=self.open_settings_dialog)
+        self.dialog_button.grid(row=13, column=0, columnspan=2, pady=10)
+
     def calculate_bmi(self):
         weight = self.entry_weight.get()
         height = self.entry_height.get()
@@ -146,15 +190,20 @@ class BMICalculator:
 
     def save_to_history(self, result_text):
         with open(self.history_file, 'a') as file:
-            file.write(result_text + '\n')
+            file.write(json.dumps({'result': result_text}) + '\n')
 
     def load_history(self):
         if os.path.exists(self.history_file):
             with open(self.history_file, 'r') as file:
                 lines = file.readlines()
                 for line in lines:
-                    self.history_listbox.insert(tk.END, line.strip())
-                    self.history.append(line.strip())
+                    try:
+                        entry = json.loads(line)
+                        result_text = entry.get('result', '')
+                        self.history_listbox.insert(tk.END, result_text)
+                        self.history.append(result_text)
+                    except:
+                        continue
 
     def clear_history(self):
         self.history_listbox.delete(0, tk.END)
@@ -208,6 +257,35 @@ class BMICalculator:
         self.figure_canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
         self.figure_canvas.draw()
         self.figure_canvas.get_tk_widget().pack(fill=BOTH, expand=True)
+
+    def save_profile(self):
+        profile = {
+            'name': self.entry_name.get(),
+            'age': self.entry_age.get(),
+            'gender': self.gender_var.get()
+        }
+        with open(self.user_preferences_file, 'w') as file:
+            json.dump(profile, file)
+
+    def load_profile(self):
+        if os.path.exists(self.user_preferences_file):
+            with open(self.user_preferences_file, 'r') as file:
+                profile = json.load(file)
+                self.entry_name.delete(0, tk.END)
+                self.entry_name.insert(0, profile.get('name', ''))
+                self.entry_age.delete(0, tk.END)
+                self.entry_age.insert(0, profile.get('age', ''))
+                self.gender_var.set(profile.get('gender', 'Other'))
+
+    def open_settings_dialog(self):
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Settings Dialog")
+
+        label_dialog = tk.Label(dialog, text="Settings Dialog Placeholder")
+        label_dialog.pack(padx=20, pady=20)
+
+        button_close = tk.Button(dialog, text="Close", command=dialog.destroy)
+        button_close.pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
