@@ -6,6 +6,8 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+import random
 
 class BMICalculator:
     def __init__(self, root):
@@ -38,14 +40,14 @@ class BMICalculator:
                 'toggle_theme': 'Toggle Theme',
                 'help': 'Help',
                 'import_data': 'Import Data',
-                'bmi_categories': 'BMI Categories',
-                'send_report': 'Send Report',
-                'feedback_email': 'Feedback Email',
                 'upload_data': 'Upload Data',
                 'download_report': 'Download Report',
                 'filter_history': 'Filter History',
                 'reset_filters': 'Reset Filters',
-                'user_profile': 'User Profile'
+                'user_profile': 'User Profile',
+                'error': 'Error',
+                'success': 'Success',
+                'warning': 'Warning'
             }
         }
         self.bmi_categories = {
@@ -164,19 +166,19 @@ class BMICalculator:
         self.button_submit_feedback.grid(row=16, column=1, padx=10, pady=10)
 
         self.theme_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['toggle_theme'], command=self.toggle_theme)
-        self.theme_button.grid(row=17, column=0, padx=10, pady=10)
+        self.theme_button.grid(row=17, column=0, columnspan=2, pady=10)
 
         self.help_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['help'], command=self.open_help_dialog)
-        self.help_button.grid(row=17, column=1, padx=10, pady=10)
+        self.help_button.grid(row=18, column=0, columnspan=2, pady=10)
 
         self.import_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['import_data'], command=self.import_data)
-        self.import_button.grid(row=18, column=0, padx=10, pady=10)
+        self.import_button.grid(row=19, column=0, padx=10, pady=10)
 
         self.upload_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['upload_data'], command=self.upload_data)
-        self.upload_button.grid(row=19, column=0, padx=10, pady=10)
+        self.upload_button.grid(row=19, column=1, padx=10, pady=10)
 
         self.download_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['download_report'], command=self.download_report)
-        self.download_button.grid(row=19, column=1, padx=10, pady=10)
+        self.download_button.grid(row=19, column=2, padx=10, pady=10)
 
         self.filter_entry = tk.Entry(self.root)
         self.filter_entry.grid(row=20, column=0, padx=10, pady=10)
@@ -233,9 +235,9 @@ class BMICalculator:
     def plot_bmi_distribution(self):
         bmi_values = [entry['bmi'] for entry in self.history]
         if bmi_values:
-            fig = Figure(figsize=(6, 4), dpi=100)
+            fig = Figure(figsize=(8, 6), dpi=100)
             plot = fig.add_subplot(111)
-            plot.hist(bmi_values, bins=10, color='blue', edgecolor='black')
+            plot.hist(bmi_values, bins=15, color='green', edgecolor='black')
             plot.set_title('BMI Distribution')
             plot.set_xlabel('BMI')
             plot.set_ylabel('Frequency')
@@ -263,7 +265,33 @@ class BMICalculator:
                 self.entry_age.delete(0, tk.END)
                 self.entry_age.insert(0, profile.get('age', ''))
                 self.gender_var.set(profile.get('gender', 'Other'))
+    def update_history_listbox_(self):
+        self.history_listbox.delete(0, tk.END)
+        for entry in self.history:
+            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
 
+    def upload_data_(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+        if file_path:
+            with open(file_path, 'w') as file:
+                json.dump(self.history, file)
+
+    def download_rep_ort(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+        if file_path:
+            with open(file_path, 'w') as file:
+                file.write("BMI Report")
+
+    def filter_histor_y(self):
+        filter_text = self.filter_entry.get()
+        filtered_history = [entry for entry in self.history if filter_text.lower() in str(entry).lower()]
+        self.history_listbox.delete(0, tk.END)
+        for entry in filtered_history:
+            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
+
+    def reset_filters_(self):
+        self.filter_entry.delete(0, tk.END)
+        self.update_history_listbox()
     def open_settings_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title(self.translation_dict[self.current_language]['settings_dialog'])
@@ -359,10 +387,67 @@ class BMICalculator:
             self.filter_button.config(bg='lightgray', fg='black')
             self.reset_filter_button.config(bg='lightgray', fg='black')
 
-    def open_help_dialog(self):
+    def open_help_dialog_(self):
         dialog = tk.Toplevel(self.root)
         dialog.title(self.translation_dict[self.current_language]['help'])
-        tk.Label(dialog, text="Help information goes here.").pack(pady=10)
+        tk.Label(dialog, text="Help content goes here.").pack(padx=10, pady=10)
+        tk.Button(dialog, text='Close', command=dialog.destroy).pack(pady=10)
+    def get_bmi_category_(self, bmi):
+        for category, (low, high) in self.bmi_categories.items():
+            if low <= bmi < high:
+                return category
+        return 'Unknown'
+
+    def clear_history_(self):
+        self.history = []
+        self.history_listbox.delete(0, tk.END)
+        self.save_history()
+
+    def save_history_(self):
+        with open(self.history_file, 'w') as file:
+            json.dump(self.history, file)
+
+    def save_settings_(self):
+        with open(self.user_preferences_file, 'w') as file:
+            preferences = {
+                'theme': self.theme,
+                'language': self.current_language
+            }
+            json.dump(preferences, file)
+
+    def plot_bmi_distribution_(self):
+        bmi_values = [entry['bmi'] for entry in self.history]
+        if bmi_values:
+            fig = Figure(figsize=(8, 6), dpi=100)
+            plot = fig.add_subplot(111)
+            plot.hist(bmi_values, bins=15, color='green', edgecolor='black')
+            plot.set_title('BMI Distribution')
+            plot.set_xlabel('BMI')
+            plot.set_ylabel('Frequency')
+            canvas = FigureCanvasTkAgg(fig, master=self.root)
+            canvas.draw()
+            canvas.get_tk_widget().grid(row=21, column=0, columnspan=3)
+        else:
+            messagebox.showinfo("No Data", "No BMI history available for plotting.")
+
+    def save_profile_(self):
+        profile = {
+            'name': self.entry_name.get(),
+            'age': self.entry_age.get(),
+            'gender': self.gender_var.get()
+        }
+        with open('user_profile.json', 'w') as file:
+            json.dump(profile, file)
+
+    def load_profile_(self):
+        if os.path.exists('user_profile.json'):
+            with open('user_profile.json', 'r') as file:
+                profile = json.load(file)
+                self.entry_name.delete(0, tk.END)
+                self.entry_name.insert(0, profile.get('name', ''))
+                self.entry_age.delete(0, tk.END)
+                self.entry_age.insert(0, profile.get('age', ''))
+                self.gender_var.set(profile.get('gender', 'Other'))
 
     def import_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
@@ -386,7 +471,6 @@ class BMICalculator:
     def download_report(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
         if file_path:
-            # Placeholder for actual report generation
             with open(file_path, 'w') as file:
                 file.write("BMI Report")
 
