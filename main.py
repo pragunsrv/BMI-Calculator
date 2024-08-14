@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH, StringVar, DoubleVar, IntVar, ttk
-from tkinter import Canvas, filedialog
+from tkinter import Canvas, filedialog, simpledialog
 import os
 import json
 import matplotlib.pyplot as plt
@@ -163,10 +163,15 @@ class BMICalculator:
         self.theme_button = tk.Button(self.root, text="Toggle Theme", command=self.toggle_theme)
         self.theme_button.grid(row=16, column=0, columnspan=2, pady=10)
 
+        self.help_button = tk.Button(self.root, text="Help", command=self.open_help_dialog)
+        self.help_button.grid(row=17, column=0, columnspan=2, pady=10)
+
+        self.import_button = tk.Button(self.root, text="Import Data", command=self.import_data)
+        self.import_button.grid(row=18, column=0, columnspan=2, pady=10)
+
     def calculate_bmi(self):
         weight = self.entry_weight.get()
         height = self.entry_height.get()
-
         weight_unit = self.unit_weight_var.get()
         height_unit = self.unit_height_var.get()
 
@@ -344,6 +349,8 @@ class BMICalculator:
             self.export_button.configure(bg='gray30', fg='white')
             self.button_submit_feedback.configure(bg='gray30', fg='white')
             self.theme_button.configure(bg='gray30', fg='white')
+            self.help_button.configure(bg='gray30', fg='white')
+            self.import_button.configure(bg='gray30', fg='white')
             self.theme = 'dark'
         else:
             self.root.configure(bg='white')
@@ -364,9 +371,50 @@ class BMICalculator:
             self.export_button.configure(bg='lightgray', fg='black')
             self.button_submit_feedback.configure(bg='lightgray', fg='black')
             self.theme_button.configure(bg='lightgray', fg='black')
+            self.help_button.configure(bg='lightgray', fg='black')
+            self.import_button.configure(bg='lightgray', fg='black')
             self.theme = 'light'
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = BMICalculator(root)
-    root.mainloop()
+    def open_help_dialog(self):
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Help")
+
+        help_text = (
+            "BMI Calculator Help\n\n"
+            "1. Enter your weight and height.\n"
+            "2. Select the units for weight and height.\n"
+            "3. Click 'Calculate BMI' to see your result.\n"
+            "4. You can view your BMI history and clear it if needed.\n"
+            "5. Customize BMI categories in the settings.\n"
+            "6. Save and load your user profile.\n"
+            "7. Plot the BMI distribution based on your history.\n"
+            "8. Export your data to a JSON file.\n"
+            "9. Provide feedback and toggle themes for better user experience.\n"
+        )
+
+        label_help = tk.Label(dialog, text=help_text, justify=tk.LEFT)
+        label_help.pack(padx=20, pady=20)
+
+        button_close = tk.Button(dialog, text="Close", command=dialog.destroy)
+        button_close.pack(pady=10)
+
+    def import_data(self):
+        file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+        if not file_path:
+            return
+
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            self.history.extend(data)
+            for entry in data:
+                self.history_listbox.insert(tk.END, entry)
+
+    def load_user_preferences(self):
+        if os.path.exists(self.user_preferences_file):
+            with open(self.user_preferences_file, 'r') as file:
+                preferences = json.load(file)
+                self.theme = preferences.get('theme', 'light')
+
+root = tk.Tk()
+app = BMICalculator(root)
+root.mainloop()
