@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH, StringVar, DoubleVar, IntVar, ttk
+from tkinter import Canvas
 import os
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class BMICalculator:
     def __init__(self, root):
@@ -15,6 +18,7 @@ class BMICalculator:
             'Overweight': (25, 29.9),
             'Obesity': (30, float('inf'))
         }
+        self.history = []
 
         self.create_widgets()
         self.load_history()
@@ -87,7 +91,14 @@ class BMICalculator:
         self.button_save_settings = tk.Button(self.settings_frame, text="Save Settings", command=self.save_settings)
         self.button_save_settings.grid(row=2, column=0, columnspan=2, pady=10)
 
-        self.settings = {}
+        self.canvas_frame = tk.Frame(self.root)
+        self.canvas_frame.grid(row=10, column=0, columnspan=2, pady=10)
+
+        self.canvas = Canvas(self.canvas_frame, width=400, height=300)
+        self.canvas.pack()
+
+        self.plot_button = tk.Button(self.root, text="Plot BMI Distribution", command=self.plot_bmi_distribution)
+        self.plot_button.grid(row=11, column=0, columnspan=2, pady=10)
 
     def calculate_bmi(self):
         weight = self.entry_weight.get()
@@ -131,6 +142,7 @@ class BMICalculator:
 
     def add_to_history(self, result_text):
         self.history_listbox.insert(tk.END, result_text)
+        self.history.append(result_text)
 
     def save_to_history(self, result_text):
         with open(self.history_file, 'a') as file:
@@ -142,9 +154,11 @@ class BMICalculator:
                 lines = file.readlines()
                 for line in lines:
                     self.history_listbox.insert(tk.END, line.strip())
+                    self.history.append(line.strip())
 
     def clear_history(self):
         self.history_listbox.delete(0, tk.END)
+        self.history = []
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
 
@@ -164,6 +178,36 @@ class BMICalculator:
         settings_text = ', '.join(self.bmi_categories.keys())
         self.entry_bmi_categories.delete(0, tk.END)
         self.entry_bmi_categories.insert(0, settings_text)
+
+    def plot_bmi_distribution(self):
+        if not self.history:
+            messagebox.showinfo("Plot Error", "No data available to plot.")
+            return
+
+        bmi_values = []
+        for entry in self.history:
+            try:
+                bmi_value = float(entry.split(':')[1].split(' ')[1])
+                bmi_values.append(bmi_value)
+            except:
+                continue
+
+        if not bmi_values:
+            messagebox.showinfo("Plot Error", "No valid BMI values found.")
+            return
+
+        fig, ax = plt.subplots()
+        ax.hist(bmi_values, bins=10, edgecolor='black')
+        ax.set_title('BMI Distribution')
+        ax.set_xlabel('BMI')
+        ax.set_ylabel('Frequency')
+
+        for widget in self.canvas_frame.winfo_children():
+            widget.destroy()
+
+        self.figure_canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
+        self.figure_canvas.draw()
+        self.figure_canvas.get_tk_widget().pack(fill=BOTH, expand=True)
 
 if __name__ == "__main__":
     root = tk.Tk()
