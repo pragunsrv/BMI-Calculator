@@ -1,21 +1,46 @@
 import tkinter as tk
-from tkinter import messagebox, Scrollbar, Listbox, RIGHT, Y, LEFT, BOTH, StringVar, DoubleVar, IntVar, ttk
-from tkinter import Canvas, filedialog, simpledialog
-import os
+from tkinter import messagebox, filedialog, ttk
+from tkinter import StringVar, BooleanVar
 import json
+import os
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import locale
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class BMICalculator:
     def __init__(self, root):
         self.root = root
         self.root.title("BMI Calculator")
-        
-        self.units = {'weight': 'kg', 'height': 'm'}
         self.history_file = 'bmi_history.json'
         self.user_preferences_file = 'user_preferences.json'
+        self.theme = 'light'
+        self.current_language = 'English'
+        self.translation_dict = {
+            'English': {
+                'weight': 'Weight',
+                'height': 'Height',
+                'weight_unit': 'Unit (lb/kg)',
+                'height_unit': 'Unit (ft/m)',
+                'calculate': 'Calculate BMI',
+                'result': 'Your BMI is',
+                'history': 'History',
+                'clear_history': 'Clear History',
+                'settings': 'Settings',
+                'plot': 'Plot BMI Distribution',
+                'name': 'Name',
+                'age': 'Age',
+                'gender': 'Gender',
+                'save_profile': 'Save Profile',
+                'load_profile': 'Load Profile',
+                'settings_dialog': 'Settings Dialog',
+                'export_data': 'Export Data',
+                'submit_feedback': 'Submit Feedback',
+                'toggle_theme': 'Toggle Theme',
+                'help': 'Help',
+                'import_data': 'Import Data',
+                'bmi_categories': 'BMI Categories'
+            }
+        }
         self.bmi_categories = {
             'Underweight': (0, 18.5),
             'Normal weight': (18.5, 24.9),
@@ -23,182 +48,55 @@ class BMICalculator:
             'Obesity': (30, float('inf'))
         }
         self.history = []
-        self.theme = 'light'
-        self.languages = ['English', 'Spanish', 'French', 'German']
-        self.current_language = 'English'
-        self.translation_dict = {
-            'English': {
-                'weight': 'Weight:',
-                'height': 'Height:',
-                'weight_unit': 'Weight Unit:',
-                'height_unit': 'Height Unit:',
-                'calculate': 'Calculate BMI',
-                'result': 'BMI: ',
-                'history': 'Calculation History:',
-                'clear_history': 'Clear History',
-                'settings': 'Settings:',
-                'bmi_categories': 'Custom Categories (comma separated):',
-                'save_settings': 'Save Settings',
-                'plot': 'Plot BMI Distribution',
-                'profile': 'User Profile:',
-                'name': 'Name:',
-                'age': 'Age:',
-                'gender': 'Gender:',
-                'save_profile': 'Save Profile',
-                'load_profile': 'Load Profile',
-                'settings_dialog': 'Settings Dialog',
-                'export_data': 'Export Data',
-                'feedback': 'Feedback:',
-                'submit_feedback': 'Submit Feedback',
-                'toggle_theme': 'Toggle Theme',
-                'help': 'Help',
-                'import_data': 'Import Data',
-                'language': 'Language:'
-            },
-            'Spanish': {
-                'weight': 'Peso:',
-                'height': 'Altura:',
-                'weight_unit': 'Unidad de Peso:',
-                'height_unit': 'Unidad de Altura:',
-                'calculate': 'Calcular IMC',
-                'result': 'IMC: ',
-                'history': 'Historial de Cálculos:',
-                'clear_history': 'Borrar Historial',
-                'settings': 'Configuraciones:',
-                'bmi_categories': 'Categorías Personalizadas (separadas por comas):',
-                'save_settings': 'Guardar Configuraciones',
-                'plot': 'Graficar Distribución de IMC',
-                'profile': 'Perfil del Usuario:',
-                'name': 'Nombre:',
-                'age': 'Edad:',
-                'gender': 'Género:',
-                'save_profile': 'Guardar Perfil',
-                'load_profile': 'Cargar Perfil',
-                'settings_dialog': 'Diálogo de Configuraciones',
-                'export_data': 'Exportar Datos',
-                'feedback': 'Comentarios:',
-                'submit_feedback': 'Enviar Comentarios',
-                'toggle_theme': 'Cambiar Tema',
-                'help': 'Ayuda',
-                'import_data': 'Importar Datos',
-                'language': 'Idioma:'
-            },
-            'French': {
-                'weight': 'Poids:',
-                'height': 'Hauteur:',
-                'weight_unit': 'Unité de Poids:',
-                'height_unit': 'Unité de Hauteur:',
-                'calculate': 'Calculer l\'IMC',
-                'result': 'IMC: ',
-                'history': 'Historique des Calculs:',
-                'clear_history': 'Effacer l\'Historique',
-                'settings': 'Paramètres:',
-                'bmi_categories': 'Catégories Personnalisées (séparées par des virgules):',
-                'save_settings': 'Enregistrer les Paramètres',
-                'plot': 'Tracer la Distribution de l\'IMC',
-                'profile': 'Profil Utilisateur:',
-                'name': 'Nom:',
-                'age': 'Âge:',
-                'gender': 'Genre:',
-                'save_profile': 'Enregistrer le Profil',
-                'load_profile': 'Charger le Profil',
-                'settings_dialog': 'Dialogue des Paramètres',
-                'export_data': 'Exporter les Données',
-                'feedback': 'Commentaires:',
-                'submit_feedback': 'Soumettre les Commentaires',
-                'toggle_theme': 'Changer le Thème',
-                'help': 'Aide',
-                'import_data': 'Importer les Données',
-                'language': 'Langue:'
-            },
-            'German': {
-                'weight': 'Gewicht:',
-                'height': 'Größe:',
-                'weight_unit': 'Gewichtseinheit:',
-                'height_unit': 'Größeneinheit:',
-                'calculate': 'BMI Berechnen',
-                'result': 'BMI: ',
-                'history': 'Berechnungshistorie:',
-                'clear_history': 'Historie Löschen',
-                'settings': 'Einstellungen:',
-                'bmi_categories': 'Benutzerdefinierte Kategorien (durch Kommas getrennt):',
-                'save_settings': 'Einstellungen Speichern',
-                'plot': 'BMI-Verteilung Diagramm',
-                'profile': 'Benutzerprofil:',
-                'name': 'Name:',
-                'age': 'Alter:',
-                'gender': 'Geschlecht:',
-                'save_profile': 'Profil Speichern',
-                'load_profile': 'Profil Laden',
-                'settings_dialog': 'Einstellungsdialog',
-                'export_data': 'Daten Exportieren',
-                'feedback': 'Rückmeldung:',
-                'submit_feedback': 'Feedback Einreichen',
-                'toggle_theme': 'Thema Umschalten',
-                'help': 'Hilfe',
-                'import_data': 'Daten Importieren',
-                'language': 'Sprache:'
-            }
-        }
-        
-        self.load_user_preferences()
-        self.create_widgets()
-        self.load_history()
-        self.load_settings()
-        self.apply_theme()
-        self.update_language()
+        self.init_ui()
 
-    def create_widgets(self):
+    def init_ui(self):
         self.label_weight = tk.Label(self.root, text=self.translation_dict[self.current_language]['weight'])
         self.label_weight.grid(row=0, column=0, padx=10, pady=10)
 
         self.entry_weight = tk.Entry(self.root)
         self.entry_weight.grid(row=0, column=1, padx=10, pady=10)
 
+        self.label_weight_units = tk.Label(self.root, text='lb')
+        self.label_weight_units.grid(row=0, column=2, padx=10, pady=10)
+
+        self.unit_weight_var = StringVar(value='lb')
+        self.unit_weight_lb = tk.Radiobutton(self.root, text='lb', variable=self.unit_weight_var, value='lb')
+        self.unit_weight_lb.grid(row=1, column=1, padx=10, pady=10)
+
+        self.unit_weight_kg = tk.Radiobutton(self.root, text='kg', variable=self.unit_weight_var, value='kg')
+        self.unit_weight_kg.grid(row=1, column=1, padx=10, pady=10, sticky='E')
+
         self.label_height = tk.Label(self.root, text=self.translation_dict[self.current_language]['height'])
-        self.label_height.grid(row=1, column=0, padx=10, pady=10)
+        self.label_height.grid(row=2, column=0, padx=10, pady=10)
 
         self.entry_height = tk.Entry(self.root)
-        self.entry_height.grid(row=1, column=1, padx=10, pady=10)
+        self.entry_height.grid(row=2, column=1, padx=10, pady=10)
 
-        self.unit_frame = tk.Frame(self.root)
-        self.unit_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        self.label_height_units = tk.Label(self.root, text='ft')
+        self.label_height_units.grid(row=2, column=2, padx=10, pady=10)
 
-        self.unit_weight_var = StringVar(value='kg')
-        self.unit_height_var = StringVar(value='m')
+        self.unit_height_var = StringVar(value='ft')
+        self.unit_height_ft = tk.Radiobutton(self.root, text='ft', variable=self.unit_height_var, value='ft')
+        self.unit_height_ft.grid(row=3, column=1, padx=10, pady=10)
 
-        self.label_weight_units = tk.Label(self.unit_frame, text=self.translation_dict[self.current_language]['weight_unit'])
-        self.label_weight_units.grid(row=0, column=0, padx=5, pady=5)
-
-        self.weight_units = ttk.Combobox(self.unit_frame, textvariable=self.unit_weight_var, values=['kg', 'lb'])
-        self.weight_units.grid(row=0, column=1, padx=5, pady=5)
-
-        self.label_height_units = tk.Label(self.unit_frame, text=self.translation_dict[self.current_language]['height_unit'])
-        self.label_height_units.grid(row=1, column=0, padx=5, pady=5)
-
-        self.height_units = ttk.Combobox(self.unit_frame, textvariable=self.unit_height_var, values=['m', 'ft'])
-        self.height_units.grid(row=1, column=1, padx=5, pady=5)
+        self.unit_height_m = tk.Radiobutton(self.root, text='m', variable=self.unit_height_var, value='m')
+        self.unit_height_m.grid(row=3, column=1, padx=10, pady=10, sticky='E')
 
         self.button_calculate = tk.Button(self.root, text=self.translation_dict[self.current_language]['calculate'], command=self.calculate_bmi)
-        self.button_calculate.grid(row=3, column=0, columnspan=2, pady=20)
+        self.button_calculate.grid(row=4, column=0, columnspan=3, pady=10)
 
-        self.label_result = tk.Label(self.root, text="")
-        self.label_result.grid(row=4, column=0, columnspan=2, pady=10)
+        self.label_result = tk.Label(self.root, text='')
+        self.label_result.grid(row=5, column=0, columnspan=3, pady=10)
 
         self.history_label = tk.Label(self.root, text=self.translation_dict[self.current_language]['history'])
-        self.history_label.grid(row=5, column=0, padx=10, pady=10)
+        self.history_label.grid(row=6, column=0, padx=10, pady=10)
 
-        self.history_listbox = Listbox(self.root, height=10, width=60)
-        self.history_listbox.grid(row=6, column=0, columnspan=2, padx=10, pady=10, rowspan=2)
-
-        self.scrollbar = Scrollbar(self.root)
-        self.scrollbar.grid(row=6, column=2, rowspan=2, sticky=Y)
-
-        self.history_listbox.config(yscrollcommand=self.scrollbar.set)
-        self.scrollbar.config(command=self.history_listbox.yview)
+        self.history_listbox = tk.Listbox(self.root)
+        self.history_listbox.grid(row=7, column=0, columnspan=3, padx=10, pady=10)
 
         self.button_clear_history = tk.Button(self.root, text=self.translation_dict[self.current_language]['clear_history'], command=self.clear_history)
-        self.button_clear_history.grid(row=8, column=0, columnspan=2, pady=10)
+        self.button_clear_history.grid(row=8, column=0, columnspan=3, pady=10)
 
         self.settings_label = tk.Label(self.root, text=self.translation_dict[self.current_language]['settings'])
         self.settings_label.grid(row=9, column=0, padx=10, pady=10)
@@ -265,131 +163,70 @@ class BMICalculator:
         self.help_button.grid(row=17, column=1, padx=10, pady=10)
 
         self.import_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['import_data'], command=self.import_data)
-        self.import_button.grid(row=18, column=0, columnspan=2, pady=10)
+        self.import_button.grid(row=18, column=0, padx=10, pady=10)
 
-        self.language_var = StringVar(value=self.current_language)
-        self.language_menu = ttk.Combobox(self.root, textvariable=self.language_var, values=self.languages, state='readonly')
+        self.language_var = StringVar(value='English')
+        self.language_menu = ttk.Combobox(self.root, textvariable=self.language_var, values=list(self.translation_dict.keys()))
         self.language_menu.grid(row=19, column=0, padx=10, pady=10)
         self.language_menu.bind('<<ComboboxSelected>>', self.change_language)
 
-        self.canvas_frame = tk.Frame(self.root)
-        self.canvas_frame.grid(row=20, column=0, columnspan=2, pady=10)
-
-        self.figure_canvas = None
+        self.load_user_preferences()
 
     def calculate_bmi(self):
-        weight = self.entry_weight.get()
-        height = self.entry_height.get()
-        weight_unit = self.unit_weight_var.get()
-        height_unit = self.unit_height_var.get()
-
-        if not weight or not height:
-            messagebox.showerror(self.translation_dict[self.current_language]['weight'], "Please enter both weight and height.")
-            return
-
         try:
-            weight = float(weight)
-            height = float(height)
-
-            if weight_unit == 'lb':
-                weight *= 0.453592
-
-            if height_unit == 'ft':
-                height *= 0.3048
-
-            if height <= 0:
-                raise ValueError("Height must be greater than zero.")
-
-            bmi = weight / (height * height)
-            bmi_category = self.get_bmi_category(bmi)
-
-            result_text = f"{self.translation_dict[self.current_language]['result']} {bmi:.2f} ({bmi_category})"
-            self.label_result.config(text=result_text)
-            self.add_to_history(result_text)
-            self.save_to_history(result_text)
+            weight = float(self.entry_weight.get())
+            height = float(self.entry_height.get())
+            if self.unit_weight_var.get() == 'kg':
+                weight = weight * 2.20462
+            if self.unit_height_var.get() == 'm':
+                height = height * 3.28084
+            bmi = weight / (height ** 2)
+            result = f"{bmi:.2f}"
+            category = self.get_bmi_category(bmi)
+            self.label_result.config(text=f"{self.translation_dict[self.current_language]['result']} {result} ({category})")
+            self.history.append({'weight': weight, 'height': height, 'bmi': bmi, 'category': category})
+            self.history_listbox.insert(tk.END, f"Weight: {weight}, Height: {height}, BMI: {result}, Category: {category}")
+            self.save_history()
         except ValueError:
-            messagebox.showerror(self.translation_dict[self.current_language]['weight'], "Please enter valid numbers.")
+            messagebox.showwarning("Input Error", "Please enter valid numerical values.")
 
     def get_bmi_category(self, bmi):
-        for category, (lower, upper) in self.bmi_categories.items():
-            if lower <= bmi < upper:
+        for category, (low, high) in self.bmi_categories.items():
+            if low <= bmi < high:
                 return category
-        return "Unknown"
-
-    def add_to_history(self, result_text):
-        self.history_listbox.insert(tk.END, result_text)
-        self.history.append(result_text)
-
-    def save_to_history(self, result_text):
-        with open(self.history_file, 'a') as file:
-            file.write(json.dumps({'result': result_text}) + '\n')
-
-    def load_history(self):
-        if os.path.exists(self.history_file):
-            with open(self.history_file, 'r') as file:
-                lines = file.readlines()
-                for line in lines:
-                    try:
-                        entry = json.loads(line)
-                        result_text = entry.get('result', '')
-                        self.history_listbox.insert(tk.END, result_text)
-                        self.history.append(result_text)
-                    except:
-                        continue
+        return 'Unknown'
 
     def clear_history(self):
-        self.history_listbox.delete(0, tk.END)
         self.history = []
-        if os.path.exists(self.history_file):
-            os.remove(self.history_file)
+        self.history_listbox.delete(0, tk.END)
+        self.save_history()
+
+    def save_history(self):
+        with open(self.history_file, 'w') as file:
+            json.dump(self.history, file)
 
     def save_settings(self):
-        categories_text = self.entry_bmi_categories.get()
-        categories = categories_text.split(',')
-
-        self.bmi_categories = {}
-        for category in categories:
-            category = category.strip()
-            if category:
-                self.bmi_categories[category] = (0, float('inf'))
-
-        self.load_settings()
-
-    def load_settings(self):
-        settings_text = ', '.join(self.bmi_categories.keys())
-        self.entry_bmi_categories.delete(0, tk.END)
-        self.entry_bmi_categories.insert(0, settings_text)
+        with open(self.user_preferences_file, 'w') as file:
+            preferences = {
+                'theme': self.theme,
+                'language': self.current_language
+            }
+            json.dump(preferences, file)
 
     def plot_bmi_distribution(self):
-        if not self.history:
-            messagebox.showinfo(self.translation_dict[self.current_language]['plot'], "No data available to plot.")
-            return
-
-        bmi_values = []
-        for entry in self.history:
-            try:
-                bmi_value = float(entry.split(':')[1].split(' ')[1])
-                bmi_values.append(bmi_value)
-            except:
-                continue
-
-        if not bmi_values:
-            messagebox.showinfo(self.translation_dict[self.current_language]['plot'], "No valid BMI values found.")
-            return
-
-        fig = Figure()
-        ax = fig.add_subplot(111)
-        ax.hist(bmi_values, bins=10, edgecolor='black')
-        ax.set_title(self.translation_dict[self.current_language]['plot'])
-        ax.set_xlabel('BMI')
-        ax.set_ylabel('Frequency')
-
-        if self.figure_canvas:
-            self.figure_canvas.get_tk_widget().destroy()
-
-        self.figure_canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
-        self.figure_canvas.draw()
-        self.figure_canvas.get_tk_widget().pack(fill=BOTH, expand=True)
+        bmi_values = [entry['bmi'] for entry in self.history]
+        if bmi_values:
+            fig = Figure(figsize=(6, 4), dpi=100)
+            plot = fig.add_subplot(111)
+            plot.hist(bmi_values, bins=10, color='blue', edgecolor='black')
+            plot.set_title('BMI Distribution')
+            plot.set_xlabel('BMI')
+            plot.set_ylabel('Frequency')
+            canvas = FigureCanvasTkAgg(fig, master=self.root)
+            canvas.draw()
+            canvas.get_tk_widget().grid(row=20, column=0, columnspan=3)
+        else:
+            messagebox.showinfo("No Data", "No BMI history available for plotting.")
 
     def save_profile(self):
         profile = {
@@ -397,12 +234,12 @@ class BMICalculator:
             'age': self.entry_age.get(),
             'gender': self.gender_var.get()
         }
-        with open(self.user_preferences_file, 'w') as file:
+        with open('user_profile.json', 'w') as file:
             json.dump(profile, file)
 
     def load_profile(self):
-        if os.path.exists(self.user_preferences_file):
-            with open(self.user_preferences_file, 'r') as file:
+        if os.path.exists('user_profile.json'):
+            with open('user_profile.json', 'r') as file:
                 profile = json.load(file)
                 self.entry_name.delete(0, tk.END)
                 self.entry_name.insert(0, profile.get('name', ''))
@@ -538,7 +375,7 @@ class BMICalculator:
             self.theme_button.config(text=self.translation_dict[self.current_language]['toggle_theme'])
             self.help_button.config(text=self.translation_dict[self.current_language]['help'])
             self.import_button.config(text=self.translation_dict[self.current_language]['import_data'])
-            self.language_menu.set(self.current_language)
+            self.entry_feedback.config(placeholder=self.translation_dict[self.current_language]['feedback'])
 
     def load_user_preferences(self):
         if os.path.exists(self.user_preferences_file):
@@ -546,7 +383,13 @@ class BMICalculator:
                 preferences = json.load(file)
                 self.theme = preferences.get('theme', 'light')
                 self.current_language = preferences.get('language', 'English')
+                self.apply_theme()
+                self.language_var.set(self.current_language)
 
-root = tk.Tk()
-app = BMICalculator(root)
-root.mainloop()
+def main():
+    root = tk.Tk()
+    app = BMICalculator(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
