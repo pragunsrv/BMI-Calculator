@@ -38,7 +38,14 @@ class BMICalculator:
                 'toggle_theme': 'Toggle Theme',
                 'help': 'Help',
                 'import_data': 'Import Data',
-                'bmi_categories': 'BMI Categories'
+                'bmi_categories': 'BMI Categories',
+                'send_report': 'Send Report',
+                'feedback_email': 'Feedback Email',
+                'upload_data': 'Upload Data',
+                'download_report': 'Download Report',
+                'filter_history': 'Filter History',
+                'reset_filters': 'Reset Filters',
+                'user_profile': 'User Profile'
             }
         }
         self.bmi_categories = {
@@ -165,10 +172,20 @@ class BMICalculator:
         self.import_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['import_data'], command=self.import_data)
         self.import_button.grid(row=18, column=0, padx=10, pady=10)
 
-        self.language_var = StringVar(value='English')
-        self.language_menu = ttk.Combobox(self.root, textvariable=self.language_var, values=list(self.translation_dict.keys()))
-        self.language_menu.grid(row=19, column=0, padx=10, pady=10)
-        self.language_menu.bind('<<ComboboxSelected>>', self.change_language)
+        self.upload_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['upload_data'], command=self.upload_data)
+        self.upload_button.grid(row=19, column=0, padx=10, pady=10)
+
+        self.download_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['download_report'], command=self.download_report)
+        self.download_button.grid(row=19, column=1, padx=10, pady=10)
+
+        self.filter_entry = tk.Entry(self.root)
+        self.filter_entry.grid(row=20, column=0, padx=10, pady=10)
+
+        self.filter_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['filter_history'], command=self.filter_history)
+        self.filter_button.grid(row=20, column=1, padx=10, pady=10)
+
+        self.reset_filter_button = tk.Button(self.root, text=self.translation_dict[self.current_language]['reset_filters'], command=self.reset_filters)
+        self.reset_filter_button.grid(row=20, column=2, padx=10, pady=10)
 
         self.load_user_preferences()
 
@@ -224,7 +241,7 @@ class BMICalculator:
             plot.set_ylabel('Frequency')
             canvas = FigureCanvasTkAgg(fig, master=self.root)
             canvas.draw()
-            canvas.get_tk_widget().grid(row=20, column=0, columnspan=3)
+            canvas.get_tk_widget().grid(row=21, column=0, columnspan=3)
         else:
             messagebox.showinfo("No Data", "No BMI history available for plotting.")
 
@@ -311,6 +328,10 @@ class BMICalculator:
             self.help_button.config(bg='gray', fg='black')
             self.import_button.config(bg='gray', fg='black')
             self.language_menu.config(bg='gray', fg='black')
+            self.upload_button.config(bg='gray', fg='black')
+            self.download_button.config(bg='gray', fg='black')
+            self.filter_button.config(bg='gray', fg='black')
+            self.reset_filter_button.config(bg='gray', fg='black')
         else:
             self.root.config(bg='white')
             self.label_weight.config(bg='white', fg='black')
@@ -333,6 +354,10 @@ class BMICalculator:
             self.help_button.config(bg='lightgray', fg='black')
             self.import_button.config(bg='lightgray', fg='black')
             self.language_menu.config(bg='white', fg='black')
+            self.upload_button.config(bg='lightgray', fg='black')
+            self.download_button.config(bg='lightgray', fg='black')
+            self.filter_button.config(bg='lightgray', fg='black')
+            self.reset_filter_button.config(bg='lightgray', fg='black')
 
     def open_help_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -345,37 +370,36 @@ class BMICalculator:
             with open(file_path, 'r') as file:
                 data = json.load(file)
                 self.history.extend(data)
-                self.history_listbox.delete(0, tk.END)
-                for entry in data:
-                    self.history_listbox.insert(tk.END, entry)
+                self.update_history_listbox()
 
-    def change_language(self, event):
-        self.current_language = self.language_var.get()
-        self.update_language()
+    def update_history_listbox(self):
+        self.history_listbox.delete(0, tk.END)
+        for entry in self.history:
+            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
 
-    def update_language(self):
-        if self.current_language in self.translation_dict:
-            self.label_weight.config(text=self.translation_dict[self.current_language]['weight'])
-            self.label_height.config(text=self.translation_dict[self.current_language]['height'])
-            self.label_weight_units.config(text=self.translation_dict[self.current_language]['weight_unit'])
-            self.label_height_units.config(text=self.translation_dict[self.current_language]['height_unit'])
-            self.button_calculate.config(text=self.translation_dict[self.current_language]['calculate'])
-            self.history_label.config(text=self.translation_dict[self.current_language]['history'])
-            self.button_clear_history.config(text=self.translation_dict[self.current_language]['clear_history'])
-            self.settings_label.config(text=self.translation_dict[self.current_language]['settings'])
-            self.plot_button.config(text=self.translation_dict[self.current_language]['plot'])
-            self.label_name.config(text=self.translation_dict[self.current_language]['name'])
-            self.label_age.config(text=self.translation_dict[self.current_language]['age'])
-            self.label_gender.config(text=self.translation_dict[self.current_language]['gender'])
-            self.button_save_profile.config(text=self.translation_dict[self.current_language]['save_profile'])
-            self.button_load_profile.config(text=self.translation_dict[self.current_language]['load_profile'])
-            self.dialog_button.config(text=self.translation_dict[self.current_language]['settings_dialog'])
-            self.export_button.config(text=self.translation_dict[self.current_language]['export_data'])
-            self.button_submit_feedback.config(text=self.translation_dict[self.current_language]['submit_feedback'])
-            self.theme_button.config(text=self.translation_dict[self.current_language]['toggle_theme'])
-            self.help_button.config(text=self.translation_dict[self.current_language]['help'])
-            self.import_button.config(text=self.translation_dict[self.current_language]['import_data'])
-            self.entry_feedback.config(placeholder=self.translation_dict[self.current_language]['feedback'])
+    def upload_data(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+        if file_path:
+            with open(file_path, 'w') as file:
+                json.dump(self.history, file)
+
+    def download_report(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+        if file_path:
+            # Placeholder for actual report generation
+            with open(file_path, 'w') as file:
+                file.write("BMI Report")
+
+    def filter_history(self):
+        filter_text = self.filter_entry.get()
+        filtered_history = [entry for entry in self.history if filter_text.lower() in str(entry).lower()]
+        self.history_listbox.delete(0, tk.END)
+        for entry in filtered_history:
+            self.history_listbox.insert(tk.END, f"Weight: {entry['weight']}, Height: {entry['height']}, BMI: {entry['bmi']:.2f}, Category: {entry['category']}")
+
+    def reset_filters(self):
+        self.filter_entry.delete(0, tk.END)
+        self.update_history_listbox()
 
     def load_user_preferences(self):
         if os.path.exists(self.user_preferences_file):
