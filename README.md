@@ -54,9 +54,7 @@ This project is a graphical BMI (Body Mass Index) Calculator built using Python'
    - Explore the application for more features like exporting/importing data, providing feedback, and more.
 
 ## File Structure
-- `main.py`: The main Python script for the BMI Calculator application.
-- `user_preferences.json`: A file storing user preferences like theme and language.
-- `bmi_history.json`: A file storing the history of BMI calculations.
+- `main.py`: The main Python script for the BMI Calculator application
 - `README.md`: This file, providing an overview of the project.
 
 ## Requirements
